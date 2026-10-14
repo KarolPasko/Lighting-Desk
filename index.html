@@ -47,7 +47,8 @@
   label.inline { display: flex; align-items: center; gap: 6px; color: var(--muted); }
   label.inline input { width: 70px; }
 
-  main { padding: 16px; display: grid; gap: 16px; }
+  main { padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  main > *, .row > * { min-width: 0; }
   section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
   section h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 
