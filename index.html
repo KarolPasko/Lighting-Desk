@@ -2,525 +2,281 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lighting Desk</title>
-<style>
-  :root {
-    --bg: #111317;
-    --panel: #1b1e24;
-    --panel-2: #23272f;
-    --line: #2f343d;
-    --text: #e6e8eb;
-    --muted: #8b929c;
-    --accent: #f5b301;
-    --accent-dim: #6b5310;
-    --ok: #3ecf7a;
-    --bad: #ff5d5d;
-    --rec: #e5484d;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--text);
-    font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  button, input { font: inherit; color: inherit; }
-  button {
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
-    padding: 6px 12px; cursor: pointer; user-select: none;
-  }
-  button:hover { border-color: var(--muted); }
-  button.on { background: var(--accent); color: #111; border-color: var(--accent); }
-  button.danger.on { background: var(--bad); border-color: var(--bad); color: #fff; }
-  button.rec.on { background: var(--rec); border-color: var(--rec); color: #fff; }
-  input[type=number], input[type=text] {
-    background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px;
-  }
-
-  header {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
-    padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
-    position: sticky; top: 0; z-index: 5;
-  }
-  header h1 { font-size: 16px; margin: 0 12px 0 0; letter-spacing: .04em; }
-  .status { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); }
-  .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-  .spacer { flex: 1; }
-  label.inline { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-  label.inline input { width: 70px; }
-
-  main { padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  main > *, .row > * { min-width: 0; }
-  section { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-  section h2 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
-
-  .faders { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; }
-  .ch {
-    flex: 0 0 64px; display: flex; flex-direction: column; align-items: center; gap: 6px;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 4px;
-  }
-  .ch.master { flex-basis: 80px; border-color: var(--accent-dim); }
-  .ch .name {
-    width: 100%; text-align: center; font-size: 11px; color: var(--muted);
-    background: transparent; border: 0; padding: 2px; border-radius: 4px;
-  }
-  .ch .name:focus { background: var(--bg); color: var(--text); outline: 1px solid var(--line); }
-  .ch .num { font-size: 11px; color: var(--muted); }
-  .ch .val { font-variant-numeric: tabular-nums; font-weight: 600; }
-  .lamp { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: #000; }
-  .ch input[type=range] {
-    writing-mode: vertical-lr; direction: rtl; width: 32px; height: 200px;
-    accent-color: var(--accent); cursor: pointer;
-  }
-  .ch .flash { width: 100%; padding: 6px 0; font-size: 11px; }
-  .ch .flash:active, .ch .flash.held { background: #fff; color: #111; }
-
-  .scenes { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-  .scene { height: 64px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; }
-  .scene small { color: var(--muted); font-size: 11px; }
-  .scene.empty { opacity: .5; }
-  .scene.live { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-  .scene-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-  .fadebar { flex: 1; min-width: 120px; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
-  .fadebar > div { height: 100%; width: 0; background: var(--accent); }
-
-  .row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-  @media (max-width: 800px) { .row { grid-template-columns: 1fr; } }
-  #log {
-    height: 160px; overflow: auto; margin: 0; padding: 8px; background: var(--bg);
-    border-radius: 6px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; color: var(--muted);
-    white-space: pre-wrap;
-  }
-  .tools { display: flex; flex-wrap: wrap; gap: 8px; }
-  .banner {
-    background: #3a1d1d; border: 1px solid var(--bad); color: #ffd6d6;
-    padding: 10px 16px; border-radius: 8px; display: none;
-  }
-  .help { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
-  kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cue Clock</title>
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<header>
-  <h1>LIGHTING DESK</h1>
-  <button id="connectBtn">Connect Arduino</button>
-  <span class="status"><span id="dot" class="dot"></span><span id="statusText">Not connected</span></span>
-  <label class="inline">Baud <input id="baud" type="number" value="115200" style="width:90px"></label>
-  <span class="spacer"></span>
-  <label class="inline">Channels <input id="chanCount" type="number" min="1" max="48" value="12"></label>
-  <button id="blackoutBtn" class="danger" title="Shortcut: B">Blackout</button>
-</header>
+<div class="app" id="app">
 
-<main>
-  <div id="noSerial" class="banner">
-    This browser doesn't support Web Serial, so it can't talk to the Arduino directly.
-    Open this page in <b>Chrome</b>, <b>Edge</b> or <b>Opera</b> on a desktop computer.
-    You can still use the desk here in preview mode.
-  </div>
-
-  <section>
-    <h2>Channels</h2>
-    <div class="faders" id="faders"></div>
-    <p class="help">Click a channel name to rename it. Hold <b>Flash</b> to send the channel to full.
-      Keys: <kbd>B</kbd> blackout, <kbd>1</kbd>–<kbd>8</kbd> recall a scene, <kbd>Esc</kbd> stop the fade.</p>
-  </section>
-
-  <section>
-    <h2>Scenes</h2>
-    <div class="scene-tools">
-      <button id="recBtn" class="rec">Record</button>
-      <label class="inline">Fade <input id="fadeTime" type="number" min="0" step="0.1" value="2"> s</label>
-      <div class="fadebar"><div id="fadeProgress"></div></div>
-      <button id="clearAllBtn">Clear faders</button>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">Cue Clock</span>
     </div>
-    <div class="scenes" id="scenes"></div>
-    <p class="help">Press <b>Record</b>, then click a scene slot to save the current faders into it.
-      Click a saved scene to fade to it. Shift-click a scene to delete it.</p>
-  </section>
+    <input id="showName" class="show-name" type="text" maxlength="120" aria-label="Show name">
 
-  <div class="row">
-    <section>
-      <h2>Serial log</h2>
-      <pre id="log"></pre>
-    </section>
-    <section>
-      <h2>Show file</h2>
-      <div class="tools">
-        <button id="exportBtn">Save show (.json)</button>
-        <button id="importBtn">Load show</button>
-        <input id="importFile" type="file" accept="application/json" hidden>
+    <div class="clock" aria-live="off">
+      <div id="tcDisplay" class="tc">00:00:00:00</div>
+      <div class="clock-meta">
+        <span id="sourceBadge" class="badge">INTERNAL</span>
+        <span id="clockState" class="clock-state">Stopped</span>
       </div>
-      <p class="help">Faders, names and scenes are also saved automatically in this browser.</p>
+    </div>
+
+    <div class="transport">
+      <button id="toStartBtn" class="icon-btn" title="Back to start (Home)" aria-label="Back to start">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h2v14H6zM9.5 12 18 5v14z"/></svg>
+      </button>
+      <button id="playBtn" class="icon-btn play" title="Play / pause (Space)" aria-label="Play">
+        <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15L19.5 12z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/></svg>
+      </button>
+      <button id="showViewBtn" class="btn" title="Countdown view (V)">Countdown view</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <section class="timeline-panel" aria-label="Timeline">
+      <div class="toolbar">
+        <button id="addCueBtn" class="btn primary" title="Add a cue at the playhead (C)">Add cue</button>
+        <label class="field-inline">to
+          <select id="newCueCategory" aria-label="Category for new cues"></select>
+        </label>
+        <button id="addTrackBtn" class="btn" title="Add an audio track">Add track</button>
+        <input id="trackFile" type="file" accept="audio/*" hidden>
+        <span class="toolbar-gap"></span>
+        <label class="check"><input id="followChk" type="checkbox"> Follow playhead</label>
+        <div class="zoom">
+          <button id="zoomOutBtn" class="btn small" aria-label="Zoom out" title="Zoom out (−)">−</button>
+          <button id="zoomFitBtn" class="btn small" title="Fit the show (0)">Fit</button>
+          <button id="zoomInBtn" class="btn small" aria-label="Zoom in" title="Zoom in (+)">+</button>
+        </div>
+      </div>
+      <div class="timeline-scroll" id="timelineWrap">
+        <canvas id="timeline"></canvas>
+      </div>
+      <p class="hint">Double-click a lane to add a cue there. Drag cues to move them, or into another lane to change category.
+        Click or drag the ruler to move the playhead. Scroll to pan, Ctrl/⌘ + scroll to zoom.</p>
+
+      <div class="cuelist-head">
+        <h2>Cue list</h2>
+        <span id="cueCount" class="muted"></span>
+      </div>
+      <div class="cuelist-scroll">
+        <table class="cuelist" id="cueTable">
+          <thead><tr><th>#</th><th>Timecode</th><th>Category</th><th>Name</th><th>Avolites</th><th class="num">Countdown</th></tr></thead>
+          <tbody id="cueBody"></tbody>
+        </table>
+        <div id="cueEmpty" class="empty">No cues yet. Press <kbd>C</kbd> or <b>Add cue</b> to drop one at the playhead.</div>
+      </div>
     </section>
+
+    <aside class="side" aria-label="Details">
+      <nav class="tabs" role="tablist">
+        <button role="tab" data-tab="inspector" class="tab on">Cue</button>
+        <button role="tab" data-tab="timecode" class="tab">Timecode</button>
+        <button role="tab" data-tab="avolites" class="tab">Avolites <span id="titanDot" class="dot"></span></button>
+        <button role="tab" data-tab="show" class="tab">Show</button>
+      </nav>
+
+      <!-- Cue / track inspector -->
+      <div class="tab-body" data-body="inspector">
+        <div id="inspNone" class="insp-none">
+          <p>Select a cue or track to edit it.</p>
+          <p class="muted">Keys: <kbd>Space</kbd> play/pause · <kbd>C</kbd> add cue · <kbd>V</kbd> countdown view ·
+            <kbd>Delete</kbd> remove · <kbd>[</kbd> <kbd>]</kbd> nudge one frame · <kbd>Ctrl/⌘ Z</kbd> undo</p>
+        </div>
+
+        <form id="inspCue" class="form" hidden autocomplete="off">
+          <label>Name <input id="cueName" type="text" maxlength="200"></label>
+          <label>Timecode
+            <div class="row">
+              <input id="cueTc" class="mono" type="text" placeholder="HH:MM:SS:FF">
+              <button type="button" id="cueToPlayhead" class="btn small">Set to playhead</button>
+            </div>
+            <span id="cueTcError" class="error" hidden></span>
+          </label>
+          <label>Category <select id="cueCategory"></select></label>
+          <label>Notes <textarea id="cueNotes" rows="3" maxlength="2000"></textarea></label>
+
+          <fieldset class="titan-box">
+            <legend>Avolites cue</legend>
+            <label>Cue list
+              <select id="cueTitanList"></select>
+            </label>
+            <label>Cue number
+              <input id="cueTitanCue" type="number" min="1" step="any" placeholder="Next cue">
+            </label>
+            <p class="muted small">At this cue's time the console's cue list jumps to this cue number and plays it. Leave the number empty to just press Go.</p>
+          </fieldset>
+
+          <div class="row wrap">
+            <button type="button" id="cueGoto" class="btn">Go to cue</button>
+            <button type="button" id="cueFire" class="btn">Fire now</button>
+            <span class="toolbar-gap"></span>
+            <button type="button" id="cueDelete" class="btn danger">Delete</button>
+          </div>
+        </form>
+
+        <form id="inspTrack" class="form" hidden autocomplete="off">
+          <label>Track name <input id="trackName" type="text" maxlength="120"></label>
+          <label>Starts at
+            <input id="trackStart" class="mono" type="text" placeholder="HH:MM:SS:FF">
+            <span id="trackStartError" class="error" hidden></span>
+          </label>
+          <p class="muted">Length <span id="trackLen" class="mono"></span> · ends <span id="trackEnd" class="mono"></span></p>
+          <p id="trackMissing" class="warn" hidden>The audio file for this track isn't stored in this browser. Relink it to hear it.</p>
+          <div class="row wrap">
+            <button type="button" id="trackRelink" class="btn">Relink audio file</button>
+            <button type="button" id="trackGoto" class="btn">Go to start</button>
+            <span class="toolbar-gap"></span>
+            <button type="button" id="trackDelete" class="btn danger">Delete</button>
+          </div>
+          <input id="relinkFile" type="file" accept="audio/*" hidden>
+        </form>
+      </div>
+
+      <!-- Timecode in / out -->
+      <div class="tab-body" data-body="timecode" hidden>
+        <h3>Clock source</h3>
+        <div class="segmented" role="radiogroup" aria-label="Clock source">
+          <label><input type="radio" name="source" value="internal"><span>Internal</span></label>
+          <label><input type="radio" name="source" value="mtc"><span>MTC in</span></label>
+          <label><input type="radio" name="source" value="ltc"><span>LTC in</span></label>
+        </div>
+        <p id="sourceHelp" class="muted small"></p>
+
+        <h3>MIDI timecode (MTC)</h3>
+        <div id="midiOff">
+          <button id="midiEnableBtn" class="btn">Turn on MIDI</button>
+          <p class="muted small">For QLab on the same Mac, set its Timecode cue to send MTC to the IAC Driver bus and pick that bus here.</p>
+        </div>
+        <div id="midiOn" class="form" hidden>
+          <label>MTC input <select id="midiIn"></select></label>
+          <label>MTC output <select id="midiOut"></select></label>
+          <label class="check"><input id="mtcOutChk" type="checkbox"> Send MTC on the output</label>
+          <p id="midiNote" class="muted small"></p>
+        </div>
+        <p id="midiError" class="error" hidden></p>
+
+        <h3>Audio timecode (LTC)</h3>
+        <div class="form">
+          <label>LTC input <select id="ltcIn"></select></label>
+          <div class="meter" aria-label="LTC input level"><div id="ltcMeter"></div></div>
+          <label class="check"><input id="ltcOutChk" type="checkbox"> Send LTC</label>
+          <label>LTC output <select id="ltcOutDev"></select></label>
+          <label>LTC level <input id="ltcGain" type="range" min="0.05" max="1" step="0.05"></label>
+          <p class="muted small">LTC goes out on both channels of the output you pick. Use a spare output on your interface, not the speakers.</p>
+        </div>
+        <p id="ltcError" class="error" hidden></p>
+
+        <h3>Playback</h3>
+        <div class="form">
+          <label>Track output <select id="trackOut"></select></label>
+          <label class="check"><input id="playChaseChk" type="checkbox"> Play tracks while chasing incoming timecode</label>
+          <label class="check"><input id="chaseTitanChk" type="checkbox"> After a jump, recall the right Avolites cue for that point</label>
+        </div>
+      </div>
+
+      <!-- Avolites -->
+      <div class="tab-body" data-body="avolites" hidden>
+        <div id="bridgeDown" class="callout" hidden>
+          <b>The bridge isn't running.</b>
+          <p>The browser can't reach the console by itself. In a terminal, in this folder, run:</p>
+          <pre class="code">node bridge/server.js</pre>
+          <p>then open <span class="mono">http://localhost:8080</span>. To try it without a console, add <span class="mono">--demo</span>.</p>
+          <label>Bridge address <input id="bridgeUrl" type="text" class="mono" placeholder="http://localhost:8080"></label>
+          <button id="bridgeRetry" class="btn">Try again</button>
+        </div>
+
+        <div id="bridgeUp" hidden>
+          <form id="titanForm" class="form" autocomplete="off">
+            <label>Console IP address <input id="titanHost" type="text" class="mono" placeholder="192.168.1.50"></label>
+            <label>WebAPI port <input id="titanPort" type="number" min="1" max="65535"></label>
+            <label class="check"><input id="titanDemo" type="checkbox"> Demo console (no desk needed)</label>
+            <button class="btn primary" type="submit">Connect</button>
+          </form>
+          <p id="titanStatus" class="status-line"></p>
+
+          <h3>Cue lists on the console</h3>
+          <p class="muted small">Lists you make on the desk appear here within a few seconds. Add a cue for one, then give it a time in this app.</p>
+          <ul id="titanLists" class="titan-lists"></ul>
+          <p id="titanListsEmpty" class="muted small" hidden>No cue lists found yet.</p>
+
+          <h3>Last command</h3>
+          <p id="titanLast" class="muted small">None yet.</p>
+        </div>
+      </div>
+
+      <!-- Show settings + export -->
+      <div class="tab-body" data-body="show" hidden>
+        <div class="form">
+          <label>Frame rate <select id="showFps"></select></label>
+        </div>
+
+        <h3>Categories</h3>
+        <ul id="catList" class="cat-list"></ul>
+        <button id="addCatBtn" class="btn small">Add category</button>
+
+        <h3>Export</h3>
+        <div class="row wrap">
+          <button id="exportPyBtn" class="btn primary">Python (.py)</button>
+          <button id="exportCsvBtn" class="btn">CSV</button>
+        </div>
+        <p class="muted small">The Python file holds every cue with its timecode, seconds and frame number. Import it, or run it to count down the show.</p>
+
+        <h3>Show file</h3>
+        <div class="row wrap">
+          <button id="saveShowBtn" class="btn">Save show</button>
+          <button id="openShowBtn" class="btn">Open show</button>
+          <button id="newShowBtn" class="btn">New show</button>
+        </div>
+        <input id="openShowFile" type="file" accept=".json,application/json" hidden>
+        <p id="newShowConfirm" class="confirm" hidden>
+          Clear every cue and track? <button id="newShowYes" class="btn small danger">Clear show</button>
+          <button id="newShowNo" class="btn small">Keep it</button>
+        </p>
+        <p class="muted small">Your show saves itself in this browser as you work. Audio files stay in this browser too; a saved show file holds the cues and track positions.</p>
+      </div>
+    </aside>
   </div>
-</main>
 
-<script>
-(() => {
-  'use strict';
+  <!-- Countdown view -->
+  <div id="showView" class="showview" hidden>
+    <div class="sv-top">
+      <div>
+        <div id="svTc" class="sv-tc">00:00:00:00</div>
+        <div id="svTrack" class="sv-track"></div>
+      </div>
+      <div class="sv-actions">
+        <button id="svPlay" class="btn">Play</button>
+        <button id="svClose" class="btn">Close (V)</button>
+      </div>
+    </div>
+    <div id="svNext" class="sv-next"></div>
+    <div class="sv-cols">
+      <div class="sv-col">
+        <h2>Coming up</h2>
+        <ol id="svUpcoming" class="sv-list"></ol>
+      </div>
+      <div class="sv-col">
+        <h2>Just fired</h2>
+        <ol id="svFired" class="sv-list"></ol>
+      </div>
+    </div>
+  </div>
 
-  const MAX_CH = 48;
-  const SCENE_COUNT = 8;
-  const STORE_KEY = 'lighting-desk-v1';
+  <div id="toast" class="toast" role="status" hidden></div>
+</div>
 
-  // ---------- state ----------
-  const state = {
-    count: 12,
-    levels: new Array(MAX_CH).fill(0),
-    names: Array.from({ length: MAX_CH }, (_, i) => `Ch ${i + 1}`),
-    master: 255,
-    scenes: new Array(SCENE_COUNT).fill(null), // { name, levels: [] }
-  };
-  let blackout = false;
-  let recording = false;
-  let liveScene = -1;
-  const flashing = new Set();
-  const sent = new Array(MAX_CH).fill(-1); // last value sent to the Arduino per channel
-
-  // ---------- persistence ----------
-  function save() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (_) {}
-  }
-  function applyLoaded(data) {
-    if (!data || typeof data !== 'object') return;
-    const n = Number(data.count);
-    if (n >= 1 && n <= MAX_CH) state.count = n;
-    if (Array.isArray(data.levels)) data.levels.slice(0, MAX_CH).forEach((v, i) => state.levels[i] = clamp(v));
-    if (Array.isArray(data.names)) data.names.slice(0, MAX_CH).forEach((v, i) => { if (typeof v === 'string') state.names[i] = v; });
-    if (data.master !== undefined) state.master = clamp(data.master);
-    if (Array.isArray(data.scenes)) {
-      state.scenes = new Array(SCENE_COUNT).fill(null);
-      data.scenes.slice(0, SCENE_COUNT).forEach((s, i) => {
-        if (s && Array.isArray(s.levels)) state.scenes[i] = { name: String(s.name || `Scene ${i + 1}`), levels: s.levels.map(clamp) };
-      });
-    }
-  }
-  try { applyLoaded(JSON.parse(localStorage.getItem(STORE_KEY))); } catch (_) {}
-
-  function clamp(v) { v = Math.round(Number(v) || 0); return v < 0 ? 0 : v > 255 ? 255 : v; }
-
-  // ---------- output calculation ----------
-  function outputFor(i) {
-    if (blackout) return 0;
-    if (flashing.has(i)) return 255;
-    return Math.round(state.levels[i] * state.master / 255);
-  }
-
-  // ---------- UI: faders ----------
-  const $ = id => document.getElementById(id);
-  const fadersEl = $('faders');
-  let chEls = [];
-
-  function buildFaders() {
-    fadersEl.innerHTML = '';
-    chEls = [];
-    for (let i = 0; i < state.count; i++) {
-      const wrap = document.createElement('div');
-      wrap.className = 'ch';
-      wrap.innerHTML = `
-        <span class="num">${i + 1}</span>
-        <div class="lamp"></div>
-        <input class="name" type="text" maxlength="12">
-        <input type="range" min="0" max="255" step="1">
-        <span class="val"></span>
-        <button class="flash">Flash</button>`;
-      const name = wrap.querySelector('.name');
-      const range = wrap.querySelector('input[type=range]');
-      const flash = wrap.querySelector('.flash');
-      name.value = state.names[i];
-      range.value = state.levels[i];
-      name.addEventListener('change', () => { state.names[i] = name.value; save(); });
-      range.addEventListener('input', () => {
-        stopFade();
-        liveScene = -1; renderScenes();
-        state.levels[i] = clamp(range.value);
-        update();
-      });
-      const down = e => { e.preventDefault(); flashing.add(i); flash.classList.add('held'); update(); };
-      const up = () => { if (flashing.delete(i)) { flash.classList.remove('held'); update(); } };
-      flash.addEventListener('pointerdown', down);
-      flash.addEventListener('pointerup', up);
-      flash.addEventListener('pointerleave', up);
-      flash.addEventListener('pointercancel', up);
-      fadersEl.appendChild(wrap);
-      chEls.push({ range, val: wrap.querySelector('.val'), lamp: wrap.querySelector('.lamp') });
-    }
-
-    // grand master
-    const m = document.createElement('div');
-    m.className = 'ch master';
-    m.innerHTML = `
-      <span class="num">GM</span>
-      <div class="lamp" style="visibility:hidden"></div>
-      <span class="name">Master</span>
-      <input type="range" min="0" max="255" step="1">
-      <span class="val"></span>
-      <button class="flash" style="visibility:hidden">-</button>`;
-    const mr = m.querySelector('input[type=range]');
-    mr.value = state.master;
-    mr.addEventListener('input', () => { state.master = clamp(mr.value); update(); });
-    fadersEl.appendChild(m);
-    masterEls = { range: mr, val: m.querySelector('.val') };
-  }
-  let masterEls = null;
-
-  function renderFaders() {
-    for (let i = 0; i < chEls.length; i++) {
-      const el = chEls[i];
-      if (Number(el.range.value) !== state.levels[i]) el.range.value = state.levels[i];
-      const pct = Math.round(state.levels[i] / 2.55);
-      el.val.textContent = pct + '%';
-      const out = outputFor(i) / 255;
-      el.lamp.style.background = `rgba(245,179,1,${out})`;
-      el.lamp.style.boxShadow = out > 0.05 ? `0 0 ${Math.round(out * 16)}px rgba(245,179,1,${out})` : 'none';
-    }
-    if (masterEls) {
-      masterEls.range.value = state.master;
-      masterEls.val.textContent = Math.round(state.master / 2.55) + '%';
-    }
-  }
-
-  let saveTimer = 0;
-  function update() {
-    renderFaders();
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(save, 300);
-  }
-
-  // ---------- UI: scenes ----------
-  const scenesEl = $('scenes');
-  function renderScenes() {
-    scenesEl.innerHTML = '';
-    state.scenes.forEach((s, i) => {
-      const b = document.createElement('button');
-      b.className = 'scene' + (s ? '' : ' empty') + (i === liveScene ? ' live' : '');
-      b.innerHTML = `<span>${s ? escapeHtml(s.name) : 'Empty'}</span><small>${i + 1}</small>`;
-      b.addEventListener('click', e => sceneClick(i, e.shiftKey));
-      scenesEl.appendChild(b);
-    });
-  }
-  function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
-
-  function sceneClick(i, shift) {
-    if (shift) {
-      if (state.scenes[i] && confirm(`Delete "${state.scenes[i].name}"?`)) {
-        state.scenes[i] = null; if (liveScene === i) liveScene = -1; renderScenes(); save();
-      }
-      return;
-    }
-    if (recording) {
-      const old = state.scenes[i];
-      const name = prompt('Scene name:', old ? old.name : `Scene ${i + 1}`);
-      if (name === null) return;
-      state.scenes[i] = { name: name || `Scene ${i + 1}`, levels: state.levels.slice() };
-      setRecording(false);
-      liveScene = i;
-      renderScenes(); save();
-      log(`Recorded scene ${i + 1}`);
-      return;
-    }
-    if (state.scenes[i]) fadeTo(state.scenes[i].levels, Number($('fadeTime').value) || 0, i);
-  }
-
-  function setRecording(on) { recording = on; $('recBtn').classList.toggle('on', on); }
-  $('recBtn').addEventListener('click', () => setRecording(!recording));
-
-  // ---------- fades ----------
-  let fade = null;
-  function fadeTo(target, seconds, sceneIndex) {
-    stopFade();
-    liveScene = sceneIndex; renderScenes();
-    const from = state.levels.slice();
-    const to = state.levels.map((_, i) => clamp(target[i] ?? 0));
-    if (seconds <= 0) { state.levels = to; $('fadeProgress').style.width = '100%'; update(); return; }
-    const start = performance.now();
-    const ms = seconds * 1000;
-    fade = { raf: 0 };
-    const step = now => {
-      const t = Math.min(1, (now - start) / ms);
-      for (let i = 0; i < MAX_CH; i++) state.levels[i] = Math.round(from[i] + (to[i] - from[i]) * t);
-      $('fadeProgress').style.width = (t * 100) + '%';
-      update();
-      if (t < 1) fade.raf = requestAnimationFrame(step); else fade = null;
-    };
-    fade.raf = requestAnimationFrame(step);
-  }
-  function stopFade() { if (fade) { cancelAnimationFrame(fade.raf); fade = null; } }
-
-  $('clearAllBtn').addEventListener('click', () => {
-    stopFade(); liveScene = -1; renderScenes();
-    state.levels.fill(0); update();
-  });
-
-  // ---------- blackout ----------
-  function toggleBlackout() {
-    blackout = !blackout;
-    $('blackoutBtn').classList.toggle('on', blackout);
-    update();
-  }
-  $('blackoutBtn').addEventListener('click', toggleBlackout);
-
-  // ---------- channel count ----------
-  $('chanCount').value = state.count;
-  $('chanCount').addEventListener('change', e => {
-    const n = Math.max(1, Math.min(MAX_CH, Math.round(Number(e.target.value)) || 1));
-    e.target.value = n;
-    for (let i = n; i < state.count; i++) state.levels[i] = 0; // turn off removed channels
-    state.count = n;
-    buildFaders(); update();
-  });
-
-  // ---------- keyboard ----------
-  document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
-    if (e.key === 'b' || e.key === 'B') { toggleBlackout(); e.preventDefault(); }
-    else if (e.key === 'Escape') { stopFade(); setRecording(false); }
-    else if (/^[1-8]$/.test(e.key)) { sceneClick(Number(e.key) - 1, false); }
-  });
-
-  // ---------- show file ----------
-  $('exportBtn').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'lighting-show.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  });
-  $('importBtn').addEventListener('click', () => $('importFile').click());
-  $('importFile').addEventListener('change', async e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    try {
-      applyLoaded(JSON.parse(await f.text()));
-      $('chanCount').value = state.count;
-      liveScene = -1;
-      buildFaders(); renderScenes(); update(); save();
-      log(`Loaded show "${f.name}"`);
-    } catch (err) { alert('Could not read that file: ' + err.message); }
-    e.target.value = '';
-  });
-
-  // ---------- log ----------
-  const logEl = $('log');
-  function log(msg) {
-    const t = new Date().toLocaleTimeString();
-    logEl.textContent += `[${t}] ${msg}\n`;
-    if (logEl.textContent.length > 20000) logEl.textContent = logEl.textContent.slice(-15000);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  // ---------- serial ----------
-  // Protocol (one command per line, ending in \n):
-  //   "<channel>,<value>"   channel 1-512, value 0-255   e.g. "3,128"
-  //   "?"                   Arduino replies with an "LD READY ..." line
-  let port = null, writer = null, reader = null;
-  const encoder = new TextEncoder();
-  let writing = false;
-
-  function setStatus(ok, text) {
-    $('dot').classList.toggle('ok', ok);
-    $('statusText').textContent = text;
-    $('connectBtn').textContent = ok ? 'Disconnect' : 'Connect Arduino';
-  }
-
-  if (!('serial' in navigator)) {
-    $('noSerial').style.display = 'block';
-    $('connectBtn').disabled = true;
-    log('Web Serial is not available in this browser (preview mode).');
-  } else {
-    navigator.serial.addEventListener('disconnect', e => {
-      if (e.target === port) { log('Arduino unplugged.'); cleanup(); }
-    });
-  }
-
-  $('connectBtn').addEventListener('click', async () => {
-    if (port) { await disconnect(); return; }
-    try {
-      const p = await navigator.serial.requestPort();
-      await p.open({ baudRate: Number($('baud').value) || 115200 });
-      port = p;
-      writer = port.writable.getWriter();
-      sent.fill(-1); // force a full resend
-      setStatus(true, 'Connected');
-      log('Port opened. Waiting for Arduino to boot...');
-      readLoop();
-      // Most Arduinos reset when the port opens; give the bootloader time before talking.
-      setTimeout(() => { if (port) writeLine('?'); }, 1800);
-    } catch (err) {
-      if (err.name !== 'NotFoundError') log('Connect failed: ' + err.message);
-      cleanup();
-    }
-  });
-
-  async function readLoop() {
-    const decoder = new TextDecoder();
-    let buf = '';
-    while (port && port.readable) {
-      try {
-        reader = port.readable.getReader();
-        for (;;) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          let nl;
-          while ((nl = buf.indexOf('\n')) >= 0) {
-            const line = buf.slice(0, nl).replace(/\r$/, '');
-            buf = buf.slice(nl + 1);
-            if (line) {
-              log('← ' + line);
-              if (line.startsWith('LD READY')) { setStatus(true, 'Connected · ' + line.slice(9)); sent.fill(-1); }
-            }
-          }
-        }
-      } catch (err) {
-        log('Read error: ' + err.message);
-      } finally {
-        if (reader) { try { reader.releaseLock(); } catch (_) {} reader = null; }
-      }
-      break;
-    }
-  }
-
-  async function writeLine(s) {
-    if (!writer) return;
-    try { await writer.write(encoder.encode(s + '\n')); }
-    catch (err) { log('Write error: ' + err.message); }
-  }
-
-  // Send only the channels that changed, about 40 times a second.
-  setInterval(async () => {
-    if (!writer || writing) return;
-    let out = '';
-    for (let i = 0; i < state.count; i++) {
-      const v = outputFor(i);
-      if (v !== sent[i]) { out += `${i + 1},${v}\n`; sent[i] = v; }
-    }
-    if (!out) return;
-    writing = true;
-    try { await writer.write(encoder.encode(out)); }
-    catch (err) { log('Write error: ' + err.message); }
-    writing = false;
-  }, 25);
-
-  // Every 2 s mark everything stale so a missed byte can never leave a lamp stuck.
-  setInterval(() => { if (writer) sent.fill(-1); }, 2000);
-
-  async function disconnect() {
-    try { if (reader) await reader.cancel(); } catch (_) {}
-    try { if (writer) { writer.releaseLock(); } } catch (_) {}
-    try { if (port) await port.close(); } catch (_) {}
-    log('Disconnected.');
-    cleanup();
-  }
-  function cleanup() {
-    port = null; writer = null; reader = null;
-    setStatus(false, 'Not connected');
-  }
-
-  // ---------- go ----------
-  buildFaders();
-  renderScenes();
-  update();
-})();
-</script>
+<script src="js/timecode.js"></script>
+<script src="js/ltc.js"></script>
+<script src="js/mtc.js"></script>
+<script src="js/export.js"></script>
+<script src="js/show.js"></script>
+<script src="js/io.js"></script>
+<script src="js/timeline.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

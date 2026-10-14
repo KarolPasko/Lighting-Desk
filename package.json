@@ -1,0 +1,12 @@
+{
+  "name": "cue-clock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Timecode cue timeline with MTC/LTC in and out, Python export and an Avolites Titan bridge.",
+  "scripts": {
+    "start": "node bridge/server.js",
+    "demo": "node bridge/server.js --demo",
+    "test": "node test/core.test.js"
+  },
+  "engines": { "node": ">=18" }
+}
