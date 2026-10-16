@@ -14,6 +14,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { NetScan } = require('./netscan.js');
+
+// Network monitor (sACN / Art-Net / device discovery). Idle until the app's
+// Network tab turns it on, so its UDP ports aren't bound unless wanted.
+const net = new NetScan();
 
 const ROOT = path.resolve(__dirname, '..');
 const CONFIG_FILE = path.join(__dirname, 'config.json');
@@ -197,6 +202,17 @@ function positiveNumber(v) {
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') return sendJson(res, 200, publicState());
 
+  if (req.method === 'GET' && url.pathname === '/api/net/status') {
+    const snap = net.snapshot();
+    const focus = url.searchParams.get('levels'); // e.g. "sacn:3"
+    if (focus) {
+      const [proto, uni] = focus.split(':');
+      snap.focusLevels = net.universeLevels(proto, uni);
+      snap.focus = focus;
+    }
+    return sendJson(res, 200, snap);
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/events') {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
     res.write(`data: ${JSON.stringify(publicState())}\n\n`);
@@ -252,6 +268,26 @@ async function handleApi(req, res, url) {
     }
   }
 
+  // ---------- network monitor ----------
+  if (url.pathname === '/api/net/control') {
+    if (body.action === 'start') net.start();
+    else if (body.action === 'stop') net.stop();
+    else if (body.action === 'reset') net.reset();
+    else if (body.action === 'capture') net.capture = !!body.on;
+    else if (body.action === 'artpoll') { if (!net.running) net.start(); net.sendArtPoll(); }
+    else if (body.action === 'universeTop') {
+      const top = positiveNumber(body.value);
+      if (top) { net.universeTop = Math.min(512, Math.max(1, Math.round(top))); if (net.running) net.joinUniverses(1, net.universeTop); }
+    } else if (body.action === 'pingsweep') {
+      if (!net.running) net.start();
+      net.pingSweep((n) => console.log(`${new Date().toLocaleTimeString()}  Ping sweep sent to ${n} addresses`));
+      return sendJson(res, 200, { ok: true, sweeping: true });
+    } else {
+      return sendJson(res, 400, { error: 'Unknown action' });
+    }
+    return sendJson(res, 200, { ok: true, running: net.running, capturing: net.capture });
+  }
+
   return sendJson(res, 404, { error: 'Not found' });
 }
 
@@ -294,3 +330,7 @@ server.listen(PORT, '127.0.0.1', () => {
   else console.log('No console set yet. Enter its IP address in the app (Avolites tab), or start with --titan <ip>.');
   poll();
 });
+
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => { try { net.stop(); } catch (_) {} process.exit(0); });
+}

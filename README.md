@@ -11,6 +11,7 @@ video, stage and anything else, and run it all from timecode: chase QLab, or be 
 - **Avolites Titan link**: cue lists on the console show up in the app. Add a cue for a list, type a
   timecode, and at that time the console jumps to that cue.
 - **Export** the cue list to a Python file (or CSV) with timecode, seconds and frame numbers.
+- **Network monitor**: see the sACN and Art-Net on your show network, the devices sending it, and a packet view.
 
 ## Running it
 
@@ -69,6 +70,26 @@ each linked list. You can turn that off on the **Timecode** tab.
 so you type the cue numbers yourself; the app suggests the next number for you. If you'd rather the
 console run the cues itself, send MTC or LTC from this app into Titan's own timecode-triggered cue lists.
 
+## Network monitor
+
+Press **Network** (or `N`). This runs in the bridge, so the bridge must be running
+(`node bridge/server.js`) and you must open the app from it. Press **Start monitoring**.
+
+- **Universes**: every sACN (E1.31, UDP 5568) and Art-Net (UDP 6454) universe on the
+  network, with the source name, priority, packet rate and how many channels are active.
+  Click a universe to see its 512 channel levels live.
+- **Devices**: everything the monitor has seen — from sACN/Art-Net traffic, from Art-Net
+  nodes answering an ArtPoll, and from your computer's ARP table — with IP, MAC, maker
+  (from the MAC), name, role and universes. **Find more devices** pings every address on
+  the subnet to fill the ARP table.
+- **Packets**: tick **Capture packets** to log each sACN/Art-Net packet with a hex dump.
+
+What it does and doesn't do: it listens to the lighting protocols and reads your OS's ARP
+table. ArtPoll and the ping sweep are the normal ways to ask lighting gear to identify
+itself. It is **not** a general "capture every packet" sniffer — that needs libpcap and
+admin rights and isn't included. Only use it on a network you're responsible for, such as
+your own show network.
+
 ## Python export
 
 **Show** tab → **Python (.py)**. The file contains `CUES`, `TRACKS` and `CATEGORIES` as plain Python
@@ -88,6 +109,7 @@ python3 my_show_cues.py --titan 192.168.1.50    # also fire the Titan cues
 | Space | Play / pause (internal clock) |
 | C | Add a cue at the playhead |
 | V | Countdown view |
+| N | Network monitor |
 | Delete | Remove the selected cue or track |
 | [ and ] | Nudge the selection one frame (Shift: one second) |
 | Home | Back to the start |
@@ -115,9 +137,12 @@ js/ltc.js           LTC encoder/decoder (runs in an AudioWorklet)
 js/mtc.js           MTC message building and parsing
 js/io.js            clock, MIDI, LTC audio, bridge client
 js/timeline.js      timeline canvas
+js/network.js       network monitor view (sACN / Art-Net / devices / packets)
 js/export.js        Python and CSV export
 js/show.js          show data, saving, undo
 js/app.js           the UI
 bridge/server.js    serves the app and talks to the Titan WebAPI
+bridge/netscan.js   sACN / Art-Net / device discovery engine
 test/core.test.js   node test/core.test.js
+test/netscan.test.js  node test/netscan.test.js
 ```

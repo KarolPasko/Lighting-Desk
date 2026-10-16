@@ -43,6 +43,7 @@
         <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/></svg>
       </button>
       <button id="showViewBtn" class="btn" title="Countdown view (V)">Countdown view</button>
+      <button id="networkBtn" class="btn" title="Network monitor (N)">Network</button>
     </div>
   </header>
 
@@ -277,6 +278,101 @@
     </div>
   </div>
 
+  <!-- Network monitor -->
+  <div id="networkView" class="netview" hidden>
+    <div class="net-top">
+      <div class="net-title">
+        <h2>Network monitor</h2>
+        <span id="netIfaces" class="muted small"></span>
+      </div>
+      <div class="net-top-actions">
+        <button id="netToggle" class="btn primary">Start monitoring</button>
+        <button id="netClose" class="btn">Close (N)</button>
+      </div>
+    </div>
+
+    <div id="netOffline" class="callout" hidden>
+      <b>The bridge isn't running.</b>
+      <p>The network monitor runs in the bridge, because a browser can't open the network sockets.
+        Start it on the show computer, then reopen this view:</p>
+      <pre class="code">node bridge/server.js</pre>
+      <p class="muted small">This preview can't reach a network. Open the app from the bridge to use the monitor.</p>
+    </div>
+
+    <div id="netBody" hidden>
+      <div class="net-stats">
+        <div class="stat"><span class="stat-val" id="statSacn">0</span><span class="stat-label">sACN universes</span></div>
+        <div class="stat"><span class="stat-val" id="statArt">0</span><span class="stat-label">Art-Net universes</span></div>
+        <div class="stat"><span class="stat-val" id="statDevices">0</span><span class="stat-label">Devices</span></div>
+        <div class="stat"><span class="stat-val" id="statPackets">0</span><span class="stat-label">Packets seen</span></div>
+      </div>
+      <p id="netError" class="error" hidden></p>
+
+      <nav class="net-tabs" role="tablist">
+        <button class="net-tab on" data-net="universes" role="tab">Universes</button>
+        <button class="net-tab" data-net="devices" role="tab">Devices</button>
+        <button class="net-tab" data-net="packets" role="tab">Packets</button>
+      </nav>
+
+      <!-- Universes: sACN + Art-Net, with a 512-channel grid -->
+      <div class="net-pane" data-netbody="universes">
+        <div class="net-cols">
+          <div class="net-col">
+            <h3>sACN <span class="muted">(E1.31 · UDP 5568)</span></h3>
+            <div class="net-toolbar">
+              <label class="field-inline small">Scan universes 1–
+                <input id="netUniTop" type="number" min="1" max="512" value="64" style="width:70px">
+              </label>
+            </div>
+            <ul id="sacnList" class="uni-list"></ul>
+            <p id="sacnEmpty" class="muted small">No sACN seen yet. It appears here as soon as a console or node sends it.</p>
+          </div>
+          <div class="net-col">
+            <h3>Art-Net <span class="muted">(UDP 6454)</span></h3>
+            <div class="net-toolbar"><button id="artPollBtn" class="btn small">Poll for nodes</button></div>
+            <ul id="artList" class="uni-list"></ul>
+            <p id="artEmpty" class="muted small">No Art-Net seen yet.</p>
+          </div>
+        </div>
+        <div id="uniDetail" class="uni-detail" hidden>
+          <div class="row">
+            <b id="uniDetailTitle"></b>
+            <span class="toolbar-gap"></span>
+            <button id="uniDetailClose" class="btn small">Hide levels</button>
+          </div>
+          <div id="uniGrid" class="uni-grid" aria-label="DMX levels"></div>
+        </div>
+      </div>
+
+      <!-- Devices -->
+      <div class="net-pane" data-netbody="devices" hidden>
+        <div class="net-toolbar">
+          <button id="pingSweepBtn" class="btn small">Find more devices (ping sweep)</button>
+          <span id="sweepNote" class="muted small"></span>
+        </div>
+        <div class="table-scroll">
+          <table class="net-table" id="devTable">
+            <thead><tr><th>IP address</th><th>MAC</th><th>Maker</th><th>Name</th><th>Role</th><th>Universes</th><th>Last seen</th></tr></thead>
+            <tbody id="devBody"></tbody>
+          </table>
+        </div>
+        <p id="devEmpty" class="muted small">No devices yet. Start monitoring, then try a ping sweep.</p>
+      </div>
+
+      <!-- Packets -->
+      <div class="net-pane" data-netbody="packets" hidden>
+        <div class="net-toolbar">
+          <label class="check"><input id="captureChk" type="checkbox"> Capture packets</label>
+          <span class="muted small">Logs sACN and Art-Net packets with a hex dump. Only lighting-protocol traffic is captured, not every packet on the network.</span>
+        </div>
+        <div class="pkt-cols">
+          <ol id="pktList" class="pkt-list"></ol>
+          <pre id="pktHex" class="pkt-hex">Select a packet to see its bytes.</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="browserNotice" class="notice" role="status" hidden>
     <span class="notice-text">Cue Clock is built for <b>Chrome</b> or <b>Edge</b>. In this browser, MIDI timecode from QLab won't come through and some features may not work.</span>
@@ -302,6 +398,7 @@
 <script src="js/show.js"></script>
 <script src="js/io.js"></script>
 <script src="js/timeline.js"></script>
+<script src="js/network.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

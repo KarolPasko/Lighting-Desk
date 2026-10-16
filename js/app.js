@@ -36,6 +36,8 @@
     audioChecked: new Set(),
   };
   window.cueClock = app; // handy from the browser console
+  app.esc = esc;
+  app.bridgeBase = () => (app.settings.bridgeUrl || '').replace(/\/+$/, '') || (location.protocol.startsWith('http') ? location.origin : 'http://localhost:8080');
 
   let saveTimer = 0, settingsTimer = 0;
   function saveSoon() {
@@ -70,6 +72,7 @@
 
   // ---------- timeline ----------
   const timeline = new Timeline($('timeline'), app);
+  const network = new NetworkView(app);
 
   // ---------- selection ----------
   app.select = (type, id) => {
@@ -939,7 +942,8 @@
     const tag = e.target.tagName;
     const typing = (tag === 'INPUT' && !['checkbox', 'radio', 'range', 'color'].includes(e.target.type)) || tag === 'TEXTAREA' || tag === 'SELECT';
     if (e.key === 'Escape') {
-      if (!$('showView').hidden) toggleShowView(false);
+      if (!$('networkView').hidden) network.show(false);
+      else if (!$('showView').hidden) toggleShowView(false);
       else if (typing) e.target.blur();
       else app.select(null);
       return;
@@ -953,6 +957,7 @@
       case ' ': e.preventDefault(); togglePlay(); break;
       case 'c': case 'C': app.addCue(); break;
       case 'v': case 'V': toggleShowView(); break;
+      case 'n': case 'N': network.show($('networkView').hidden); break;
       case 'Delete': case 'Backspace': e.preventDefault(); deleteSelected(); break;
       case '[': nudge(e.shiftKey ? -1 : -1 / fps().rate); break;
       case ']': nudge(e.shiftKey ? 1 : 1 / fps().rate); break;
