@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cue Clock</title>
 <link rel="stylesheet" href="css/app.css">
+<script>
+  // Show any script error on the page, so a problem is visible instead of the app silently not responding.
+  window.addEventListener('error', function (e) {
+    var box = document.getElementById('errorBox');
+    if (!box) return;
+    box.querySelector('.notice-text').textContent = 'Something went wrong in this browser: ' + (e.message || 'unknown error') +
+      '. Try reloading. Cue Clock works best in Chrome or Edge.';
+    box.hidden = false;
+  });
+</script>
 </head>
 <body>
 <div class="app" id="app">
@@ -268,8 +278,23 @@
   </div>
 
   <div id="toast" class="toast" role="status" hidden></div>
+  <div id="browserNotice" class="notice" role="status" hidden>
+    <span class="notice-text">Cue Clock is built for <b>Chrome</b> or <b>Edge</b>. In this browser, MIDI timecode from QLab won't come through and some features may not work.</span>
+    <button type="button" class="btn small" data-close>OK</button>
+  </div>
+  <div id="errorBox" class="notice bad" role="alert" hidden>
+    <span class="notice-text"></span>
+    <button type="button" class="btn small" data-close>Close</button>
+  </div>
 </div>
 
+<script>
+  document.querySelectorAll('.notice [data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { b.parentElement.hidden = true; });
+  });
+  // Chrome and Edge expose navigator.userAgentData; Firefox and Safari don't.
+  if (!navigator.userAgentData || !navigator.requestMIDIAccess) document.getElementById('browserNotice').hidden = false;
+</script>
 <script src="js/timecode.js"></script>
 <script src="js/ltc.js"></script>
 <script src="js/mtc.js"></script>
