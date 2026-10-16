@@ -31,6 +31,7 @@
       <div class="clock-meta">
         <span id="sourceBadge" class="badge">INTERNAL</span>
         <span id="clockState" class="clock-state">Stopped</span>
+        <span id="wallClock" class="clock-state mono" title="Time of day"></span>
       </div>
     </div>
 
@@ -42,10 +43,28 @@
         <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15L19.5 12z"/></svg>
         <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h4.5v15H6zM13.5 4.5H18v15h-4.5z"/></svg>
       </button>
-      <button id="showViewBtn" class="btn" title="Countdown view (V)">Countdown view</button>
+      <button id="showViewBtn" class="btn" title="Countdown view (V)">Countdown</button>
       <button id="networkBtn" class="btn" title="Network monitor (N)">Network</button>
+      <button id="helpBtn" class="icon-btn" title="Keyboard shortcuts (?)" aria-label="Help">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 18h2v-2h-2v2zm1-16C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm0-14c-2.2 0-4 1.8-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.2-1.8-4-4-4z"/></svg>
+      </button>
     </div>
   </header>
+
+  <!-- Live operation bar (manual GO / busking) -->
+  <div id="goBar" class="go-bar" hidden>
+    <button id="goBtn" class="go-btn">GO</button>
+    <div class="go-info">
+      <span id="goPrev" class="go-prev"></span>
+      <span class="go-standby"><span class="go-label">STANDBY</span> <b id="goNext">—</b> <span id="goNextTc" class="mono"></span></span>
+    </div>
+    <div class="go-actions">
+      <button id="goPrevBtn" class="btn small" title="Previous cue">⟵ Prev</button>
+      <button id="goNextBtn" class="btn small" title="Skip cue">Next ⟶</button>
+      <button id="blackoutBtn" class="btn small danger" title="Blackout the desk">Blackout</button>
+      <button id="panicBtn" class="btn small danger" title="Release everything and stop">PANIC</button>
+    </div>
+  </div>
 
   <div class="workspace">
     <section class="timeline-panel" aria-label="Timeline">
@@ -86,7 +105,8 @@
     <aside class="side" aria-label="Details">
       <nav class="tabs" role="tablist">
         <button role="tab" data-tab="inspector" class="tab on">Cue</button>
-        <button role="tab" data-tab="timecode" class="tab">Timecode</button>
+        <button role="tab" data-tab="tools" class="tab">Tools</button>
+        <button role="tab" data-tab="timecode" class="tab">Sync</button>
         <button role="tab" data-tab="avolites" class="tab">Avolites <span id="titanDot" class="dot"></span></button>
         <button role="tab" data-tab="show" class="tab">Show</button>
       </nav>
@@ -109,7 +129,9 @@
             <span id="cueTcError" class="error" hidden></span>
           </label>
           <label>Category <select id="cueCategory"></select></label>
+          <label>Fade (seconds) <input id="cueFade" type="number" min="0" step="0.1" placeholder="—"></label>
           <label>Notes <textarea id="cueNotes" rows="3" maxlength="2000"></textarea></label>
+          <p id="multiNote" class="multi-note" hidden></p>
 
           <fieldset class="titan-box">
             <legend>Avolites cue</legend>
@@ -146,6 +168,53 @@
           </div>
           <input id="relinkFile" type="file" accept="audio/*" hidden>
         </form>
+      </div>
+
+      <!-- Tools: clipboard, markers, live, log, autosave, theme -->
+      <div class="tab-body" data-body="tools" id="toolsBody" hidden>
+        <h3>Selected cues</h3>
+        <p class="muted small">Shift-click or ⌘/Ctrl-click cues in the list to select several.</p>
+        <div class="row wrap">
+          <button id="copyCuesBtn" class="btn" title="Ctrl/⌘ C">Copy</button>
+          <button id="pasteCuesBtn" class="btn" title="Ctrl/⌘ V">Paste at playhead</button>
+          <button id="dupCuesBtn" class="btn" title="Ctrl/⌘ D">Duplicate</button>
+        </div>
+        <div class="row wrap">
+          <label class="field-inline small">Shift by
+            <select id="shiftDir"><option value="+">+</option><option value="-">−</option></select>
+            <input id="shiftAmount" type="number" min="0" step="0.5" value="1" style="width:70px"> s
+          </label>
+          <button id="shiftBtn" class="btn small">Apply</button>
+        </div>
+
+        <h3>Markers</h3>
+        <p class="muted small">Mark choruses or sections, then paste copied cues onto every marker at once.</p>
+        <div class="row wrap">
+          <button id="addMarkerBtn" class="btn small" title="M">Add at playhead</button>
+          <button id="pasteMarkersBtn" class="btn small">Paste copied cues at all markers</button>
+        </div>
+        <ul id="markerList" class="marker-list"></ul>
+
+        <h3>Live operation</h3>
+        <label class="check"><input id="manualChk" type="checkbox"> Manual GO / busk mode (GO bar + <kbd>G</kbd>)</label>
+        <p class="muted small">In manual mode you fire cues by hand with the GO bar, ignoring timecode. PANIC releases the console and stops tracks.</p>
+
+        <h3>Fire log</h3>
+        <ul id="fireLog" class="fire-log"></ul>
+        <button id="exportLogBtn" class="btn small">Export log (CSV)</button>
+
+        <h3>Snapshots</h3>
+        <p class="muted small">A snapshot of the show is kept every minute while you work.</p>
+        <ul id="autosaveList" class="autosave-list"></ul>
+
+        <h3>Accent</h3>
+        <div class="swatches">
+          <button class="swatch" data-accent="amber" style="--sw:#f2b134" title="Amber"></button>
+          <button class="swatch" data-accent="teal" style="--sw:#2fd4c4" title="Teal"></button>
+          <button class="swatch" data-accent="blue" style="--sw:#4c8dff" title="Blue"></button>
+          <button class="swatch" data-accent="green" style="--sw:#45d17a" title="Green"></button>
+          <button class="swatch" data-accent="pink" style="--sw:#ff6fae" title="Pink"></button>
+        </div>
       </div>
 
       <!-- Timecode in / out -->
@@ -230,12 +299,42 @@
         <ul id="catList" class="cat-list"></ul>
         <button id="addCatBtn" class="btn small">Add category</button>
 
-        <h3>Export</h3>
+        <h3>Export for lights</h3>
         <div class="row wrap">
-          <button id="exportPyBtn" class="btn primary">Python (.py)</button>
-          <button id="exportCsvBtn" class="btn">CSV</button>
+          <button id="exportAvoBtn" class="btn primary">Avolites CSV</button>
+          <button id="exportAvoSheetBtn" class="btn">Avolites sheet (print)</button>
         </div>
-        <p class="muted small">The Python file holds every cue with its timecode, seconds and frame number. Import it, or run it to count down the show.</p>
+        <p class="muted small">A timecode sheet grouped by Titan cue list — the times you type into the desk's Edit Times.
+          To write the times onto the desk itself, use <b>Record times to Titan</b> below.</p>
+        <div class="callout" style="margin-top:4px">
+          <b>Record times to Titan</b>
+          <p class="small">On the desk: connect the cue list, press <b>Timecode → Record</b>. Here: switch the clock to
+            <b>Internal</b> and press play from the start. Cue Clock presses GO at each cue's time, so Titan records
+            those exact timecodes onto the cues. Stop recording on the desk when done.</p>
+        </div>
+
+        <h3>Other exports</h3>
+        <div class="row wrap">
+          <button id="exportPyBtn" class="btn">Python (.py)</button>
+          <button id="exportCsvBtn" class="btn">CSV</button>
+          <button id="exportQlabBtn" class="btn">QLab CSV</button>
+          <button id="exportSheetBtn" class="btn">Cue sheet (print)</button>
+        </div>
+
+        <h3>Import cues</h3>
+        <div class="row wrap">
+          <button id="importBtn" class="btn">Paste CSV</button>
+          <button id="importFileBtn" class="btn">From file</button>
+          <input id="importFile" type="file" accept=".csv,text/csv,text/plain" hidden>
+        </div>
+        <div id="importBox" class="import-box" hidden>
+          <p class="muted small">Paste a CSV with a <b>Timecode</b> (or Time) column, plus optional Name, Category, Cue List, Cue, Fade, Notes.</p>
+          <textarea id="importText" class="mono" rows="6" placeholder="Timecode,Name,Category&#10;00:00:12:00,Blackout,Lighting"></textarea>
+          <div class="row wrap">
+            <button id="importGoBtn" class="btn primary small">Add cues</button>
+            <button id="importCancelBtn" class="btn small">Cancel</button>
+          </div>
+        </div>
 
         <h3>Show file</h3>
         <div class="row wrap">
@@ -373,6 +472,50 @@
     </div>
   </div>
 
+  <!-- Command palette -->
+  <div id="palette" class="palette" hidden>
+    <div class="palette-card" role="dialog" aria-label="Jump to cue">
+      <div class="palette-top">
+        <input id="paletteInput" type="text" placeholder="Jump to a cue — type a name, timecode or category…" autocomplete="off">
+        <button id="paletteClose" class="btn small">Esc</button>
+      </div>
+      <ol id="paletteResults" class="palette-results"></ol>
+    </div>
+  </div>
+
+  <!-- Keyboard shortcuts -->
+  <div id="helpOverlay" class="help-overlay" hidden>
+    <div class="help-card" role="dialog" aria-label="Keyboard shortcuts">
+      <div class="row"><h2>Keyboard shortcuts</h2><span class="toolbar-gap"></span><button id="helpClose" class="btn small">Close</button></div>
+      <div class="help-cols">
+        <div><h3>Transport</h3><dl>
+          <dt><kbd>Space</kbd></dt><dd>Play / pause</dd>
+          <dt><kbd>Home</kbd></dt><dd>Back to start</dd>
+          <dt><kbd>G</kbd></dt><dd>GO (manual mode)</dd>
+          <dt><kbd>V</kbd></dt><dd>Countdown view</dd>
+          <dt><kbd>N</kbd></dt><dd>Network monitor</dd>
+        </dl></div>
+        <div><h3>Cues</h3><dl>
+          <dt><kbd>C</kbd></dt><dd>Add cue at playhead</dd>
+          <dt><kbd>M</kbd></dt><dd>Add marker</dd>
+          <dt><kbd>⌘/Ctrl C</kbd></dt><dd>Copy selected</dd>
+          <dt><kbd>⌘/Ctrl X</kbd></dt><dd>Cut selected</dd>
+          <dt><kbd>⌘/Ctrl V</kbd></dt><dd>Paste at playhead</dd>
+          <dt><kbd>⌘/Ctrl D</kbd></dt><dd>Duplicate</dd>
+          <dt><kbd>⌘/Ctrl A</kbd></dt><dd>Select all</dd>
+          <dt><kbd>Delete</kbd></dt><dd>Remove selected</dd>
+          <dt><kbd>[</kbd> <kbd>]</kbd></dt><dd>Nudge one frame (Shift: 1s)</dd>
+        </dl></div>
+        <div><h3>View</h3><dl>
+          <dt><kbd>⌘/Ctrl K</kbd></dt><dd>Jump to cue…</dd>
+          <dt><kbd>⌘/Ctrl Z</kbd></dt><dd>Undo (Shift: redo)</dd>
+          <dt><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></dt><dd>Zoom in / out / fit</dd>
+          <dt><kbd>?</kbd></dt><dd>This help</dd>
+        </dl></div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status" hidden></div>
   <div id="browserNotice" class="notice" role="status" hidden>
     <span class="notice-text">Cue Clock is built for <b>Chrome</b> or <b>Edge</b>. In this browser, MIDI timecode from QLab won't come through and some features may not work.</span>
@@ -399,6 +542,7 @@
 <script src="js/io.js"></script>
 <script src="js/timeline.js"></script>
 <script src="js/network.js"></script>
+<script src="js/features.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

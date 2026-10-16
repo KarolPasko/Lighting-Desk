@@ -190,4 +190,170 @@ function exportCsv(show) {
   return rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }
 
-if (typeof module !== 'undefined') module.exports = { exportPython, exportCsv };
+// ---------- Avolites timecode sheet ----------
+// The Titan WebAPI can't write cue timecodes directly, so this produces the
+// reference a programmer types into Titan's "Edit Times", grouped by cue list.
+
+function titanGroups(show) {
+  const fps = fpsInfo(show.fps);
+  const groups = new Map(); // userNumber -> { userNumber, legend, rows }
+  const loose = [];
+  for (const c of sortedCues(show)) {
+    const row = {
+      tc: formatTC(c.time, fps), seconds: c.time, name: c.name,
+      fade: Number.isFinite(c.fade) && c.fade > 0 ? c.fade : null, category: categoryName(show, c.category),
+    };
+    if (c.titan && c.titan.userNumber) {
+      const key = c.titan.userNumber;
+      if (!groups.has(key)) groups.set(key, { userNumber: key, legend: c.titan.legend || '', rows: [] });
+      groups.get(key).rows.push({ ...row, cue: c.titan.cue || null });
+    } else {
+      loose.push(row);
+    }
+  }
+  return { groups: [...groups.values()].sort((a, b) => a.userNumber - b.userNumber), loose, fps };
+}
+
+function exportAvolitesCsv(show) {
+  const { groups, loose } = titanGroups(show);
+  const rows = [['Cue List', 'Cue List Legend', 'Cue', 'Timecode', 'Fade (s)', 'Category', 'Name']];
+  for (const g of groups)
+    for (const r of g.rows)
+      rows.push([g.userNumber, g.legend, r.cue ?? '', r.tc, r.fade ?? '', r.category, r.name]);
+  for (const r of loose)
+    rows.push(['', '(not linked to a cue list)', '', r.tc, r.fade ?? '', r.category, r.name]);
+  return rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+// A printable sheet, one block per cue list. Works from the browser's print.
+function exportAvolitesSheet(show) {
+  const { groups, loose, fps } = titanGroups(show);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const block = (title, rows, withCue) => `
+    <section>
+      <h2>${esc(title)}</h2>
+      <table>
+        <thead><tr>${withCue ? '<th>Cue</th>' : ''}<th>Timecode</th><th>Fade</th><th>Category</th><th>Name</th></tr></thead>
+        <tbody>${rows.map(r => `<tr>${withCue ? `<td class="n">${esc(r.cue ?? '')}</td>` : ''}<td class="tc">${esc(r.tc)}</td><td class="n">${r.fade ? esc(r.fade) + 's' : ''}</td><td>${esc(r.category)}</td><td>${esc(r.name)}</td></tr>`).join('')}</tbody>
+      </table>
+    </section>`;
+  const body = groups.map(g => block(`Cue list ${g.userNumber}${g.legend ? ' — ' + g.legend : ''}`, g.rows, true)).join('')
+    + (loose.length ? block('Not linked to a cue list', loose, false) : '');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(show.name)} — Avolites timecode sheet</title>
+<style>
+  body { font: 13px -apple-system, system-ui, sans-serif; color: #111; margin: 24px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .sub { color: #666; margin: 0 0 18px; }
+  section { margin: 0 0 20px; break-inside: avoid; }
+  h2 { font-size: 14px; margin: 0 0 6px; padding-bottom: 4px; border-bottom: 2px solid #111; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #ddd; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+  .tc, .n { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  @media print { body { margin: 10mm; } @page { margin: 12mm; } }
+</style></head><body>
+  <h1>${esc(show.name)}</h1>
+  <p class="sub">Avolites timecode sheet · ${esc(fps.label)} · generated ${new Date().toLocaleString()}</p>
+  ${body || '<p>No cues yet.</p>'}
+</body></html>`;
+}
+
+// QLab-friendly: a CSV you can turn into timecode markers (Timecode, Name, Notes).
+function exportQlabCsv(show) {
+  const fps = fpsInfo(show.fps);
+  const rows = [['Timecode', 'Name', 'Category', 'Notes']];
+  for (const c of sortedCues(show)) rows.push([formatTC(c.time, fps), c.name, categoryName(show, c.category), c.notes || '']);
+  return rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+// A clean printable cue sheet for the whole show.
+function exportCueSheet(show) {
+  const fps = fpsInfo(show.fps);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const rows = sortedCues(show).map((c, i) => {
+    const titan = c.titan && c.titan.userNumber ? `List ${c.titan.userNumber}${c.titan.cue ? ' Q' + c.titan.cue : ''}` : '';
+    return `<tr><td class="n">${i + 1}</td><td class="tc">${esc(formatTC(c.time, fps))}</td><td>${esc(categoryName(show, c.category))}</td><td>${esc(c.name)}</td><td class="n">${esc(titan)}</td><td>${esc(c.notes || '')}</td></tr>`;
+  }).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(show.name)} — cue sheet</title>
+<style>
+  body { font: 13px -apple-system, system-ui, sans-serif; color: #111; margin: 24px; }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .sub { color: #666; margin: 0 0 16px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #555; }
+  .tc, .n { font-family: ui-monospace, "SF Mono", Menlo, monospace; white-space: nowrap; }
+  tr:nth-child(even) td { background: #fafafa; }
+  @media print { @page { margin: 12mm; } }
+</style></head><body>
+  <h1>${esc(show.name)}</h1>
+  <p class="sub">Cue sheet · ${esc(fps.label)} · ${show.cues.length} cues · generated ${new Date().toLocaleString()}</p>
+  <table><thead><tr><th>#</th><th>Timecode</th><th>Category</th><th>Name</th><th>Avolites</th><th>Notes</th></tr></thead>
+  <tbody>${rows || '<tr><td colspan="6">No cues.</td></tr>'}</tbody></table>
+</body></html>`;
+}
+
+// ---------- CSV import ----------
+// Lenient: finds columns by header name. Returns { cues, error, count }.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', q = false;
+  const s = text.replace(/^﻿/, '');
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (q) {
+      if (c === '"') { if (s[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && s[i + 1] === '\n') i++;
+      row.push(field); field = '';
+      if (row.some(x => x !== '')) rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); if (row.some(x => x !== '')) rows.push(row); }
+  return rows;
+}
+
+function importCsv(text, show) {
+  const fps = fpsInfo(show.fps);
+  const rows = parseCsv(text);
+  if (rows.length < 2) return { cues: [], error: 'The file has no data rows.', count: 0 };
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  const col = (...names) => { for (const n of names) { const i = head.indexOf(n); if (i >= 0) return i; } return -1; };
+  const iTime = col('timecode', 'time', 'tc', 'seconds');
+  const iName = col('name', 'cue', 'label', 'description');
+  const iCat = col('category', 'cat', 'department', 'type');
+  const iList = col('cue list', 'cuelist', 'titan', 'list', 'playback');
+  const iCueNo = col('cue number', 'cue no', 'cue', 'step');
+  const iNotes = col('notes', 'note', 'comment');
+  const iFade = col('fade', 'fade (s)', 'fade time');
+  if (iTime < 0) return { cues: [], error: 'No "Timecode" or "Time" column found.', count: 0 };
+  const catByName = n => { const c = show.categories.find(x => x.name.toLowerCase() === String(n).trim().toLowerCase()); return c ? c.id : null; };
+  const cues = [];
+  let skipped = 0;
+  for (let r = 1; r < rows.length; r++) {
+    const cells = rows[r];
+    const t = parseTC(cells[iTime], fps);
+    if (t === null) { skipped++; continue; }
+    const listNo = iList >= 0 ? Number(String(cells[iList]).replace(/[^0-9.]/g, '')) : 0;
+    const cueNo = iCueNo >= 0 && iCueNo !== iName ? Number(String(cells[iCueNo]).replace(/[^0-9.]/g, '')) : 0;
+    const fade = iFade >= 0 ? Number(cells[iFade]) : NaN;
+    cues.push({
+      time: Math.max(0, t),
+      name: (iName >= 0 ? cells[iName] : '') || `Cue ${cues.length + 1}`,
+      category: (iCat >= 0 && catByName(cells[iCat])) || show.categories[0].id,
+      notes: iNotes >= 0 ? cells[iNotes] : '',
+      fade: Number.isFinite(fade) && fade > 0 ? fade : undefined,
+      titan: listNo > 0 ? { userNumber: listNo, cue: cueNo > 0 ? cueNo : null, legend: '' } : null,
+    });
+  }
+  return { cues, error: cues.length ? '' : 'No rows had a readable timecode.', count: cues.length, skipped };
+}
+
+if (typeof module !== 'undefined') module.exports = {
+  exportPython, exportCsv, exportAvolitesCsv, exportAvolitesSheet, exportQlabCsv, exportCueSheet,
+  importCsv, parseCsv, titanGroups,
+};

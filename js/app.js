@@ -34,6 +34,7 @@
     sorted: [],
     players: new Map(),   // track id -> { audio, url }
     audioChecked: new Set(),
+    selectedCues: new Set(), // ids in the current multi-selection
   };
   window.cueClock = app; // handy from the browser console
   app.esc = esc;
@@ -48,6 +49,7 @@
 
   const fps = () => fpsInfo(app.show.fps);
   const catById = id => app.show.categories.find(c => c.id === id);
+  app.catById = catById;
 
   function resort() { app.sorted = app.show.cues.slice().sort((a, b) => a.time - b.time); }
 
@@ -58,6 +60,7 @@
     if (what.inspector) renderInspector();
     if (what.categories) { renderCategoryControls(); renderCatList(); }
     if (what.titan) renderTitan();
+    if (app.features) { if (app.features.manual) app.features.renderStandby(); if (!$('toolsBody').hidden) app.features.renderToolsTab(); }
   };
 
   // ---------- toast ----------
@@ -75,11 +78,21 @@
   const network = new NetworkView(app);
 
   // ---------- selection ----------
-  app.select = (type, id) => {
+  app.select = (type, id, keepMulti) => {
     app.selection = { type, id: id || null };
+    if (type === 'cue' && id) { if (!keepMulti) app.selectedCues = new Set([id]); }
+    else if (!type) app.selectedCues.clear();
     renderInspector();
     highlightRows();
     if (type) showTab('inspector');
+  };
+
+  app.selectAllVisible = () => {
+    app.selectedCues = new Set(app.sorted.map(c => c.id));
+    if (app.sorted.length) app.selection = { type: 'cue', id: app.sorted[app.sorted.length - 1].id };
+    renderInspector();
+    highlightRows();
+    toast(`Selected ${app.sorted.length} cues.`);
   };
 
   function selectedCue() { return app.selection.type === 'cue' ? app.show.cues.find(c => c.id === app.selection.id) : null; }
@@ -132,7 +145,16 @@
 
   function deleteSelected() {
     const cue = selectedCue(), tr = selectedTrack();
-    if (cue) {
+    if (cue && app.selectedCues.size > 1) {
+      const ids = new Set(app.selectedCues);
+      const n = ids.size;
+      app.history.push(app.show);
+      app.show.cues = app.show.cues.filter(c => !ids.has(c.id));
+      app.selectedCues.clear();
+      app.select(null);
+      app.changed();
+      toast(`Deleted ${n} cues. Ctrl/⌘ Z brings them back.`);
+    } else if (cue) {
       app.history.push(app.show);
       app.show.cues = app.show.cues.filter(c => c !== cue);
       app.select(null);
@@ -367,7 +389,10 @@
   }
 
   function highlightRows() {
-    for (const r of rowRefs) r.tr.classList.toggle('sel', app.selection.type === 'cue' && r.cue.id === app.selection.id);
+    for (const r of rowRefs) {
+      r.tr.classList.toggle('sel', app.selection.type === 'cue' && r.cue.id === app.selection.id);
+      r.tr.classList.toggle('multi', app.selectedCues.has(r.cue.id));
+    }
   }
 
   function updateCountdowns(t) {
@@ -388,9 +413,25 @@
     }
   }
 
+  let lastClickedCue = null;
   $('cueBody').addEventListener('click', e => {
     const tr = e.target.closest('tr');
-    if (tr) app.select('cue', tr.dataset.id);
+    if (!tr) return;
+    const id = tr.dataset.id;
+    if (e.shiftKey && lastClickedCue) {
+      // range select in time order
+      const ids = app.sorted.map(c => c.id);
+      const a = ids.indexOf(lastClickedCue), b = ids.indexOf(id);
+      if (a >= 0 && b >= 0) { for (let i = Math.min(a, b); i <= Math.max(a, b); i++) app.selectedCues.add(ids[i]); }
+      app.select('cue', id, true);
+    } else if (e.ctrlKey || e.metaKey) {
+      if (app.selectedCues.has(id)) app.selectedCues.delete(id); else app.selectedCues.add(id);
+      app.select('cue', id, true);
+      lastClickedCue = id;
+    } else {
+      app.select('cue', id);
+      lastClickedCue = id;
+    }
   });
   $('cueBody').addEventListener('dblclick', e => {
     const tr = e.target.closest('tr');
@@ -414,7 +455,11 @@
       const sel = $('cueCategory');
       sel.innerHTML = app.show.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
       sel.value = cue.category;
+      setVal($('cueFade'), cue.fade != null ? cue.fade : '');
       setVal($('cueNotes'), cue.notes);
+      const n = app.selectedCues.size;
+      $('multiNote').hidden = n <= 1;
+      if (n > 1) $('multiNote').textContent = `${n} cues selected — Copy, Duplicate, Delete and Shift act on all of them (Tools tab).`;
       renderCueTitan(cue);
     }
     if (tr) {
@@ -456,6 +501,13 @@
 
   bindEdit($('cueName'), 'input', () => { const c = selectedCue(); if (c) { c.name = $('cueName').value; app.changed(); } });
   bindEdit($('cueNotes'), 'input', () => { const c = selectedCue(); if (c) { c.notes = $('cueNotes').value; app.changed({ list: false }); } });
+  bindEdit($('cueFade'), 'input', () => {
+    const c = selectedCue();
+    if (!c) return;
+    const v = parseFloat($('cueFade').value);
+    c.fade = Number.isFinite(v) && v > 0 ? v : undefined;
+    app.changed({ list: false });
+  });
   $('cueTc').addEventListener('change', () => {
     const c = selectedCue();
     if (!c) return;
@@ -543,6 +595,7 @@
   function showTab(name) {
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name));
     document.querySelectorAll('.tab-body').forEach(b => { b.hidden = b.dataset.body !== name; });
+    if (name === 'tools' && app.features) app.features.renderToolsTab();
   }
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
@@ -599,6 +652,7 @@
 
   function slug(s) { return (String(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'show'); }
   function download(name, text, type) {
+    if (window.__previewDownload) return window.__previewDownload(name, text);
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type }));
     a.download = name;
@@ -606,6 +660,19 @@
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  // Open a generated HTML page (sheet) so the user can read/print it.
+  function openPrintable(html, name) {
+    if (window.__previewDownload) { window.__previewDownload(name + '.html', html); return; }
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); toast('Sheet opened in a new tab. Print it with Ctrl/⌘ P.'); }
+    else { download(name + '.html', html, 'text/html'); toast('Saved the sheet as HTML. Open it and print with Ctrl/⌘ P.'); }
+  }
+
+  function stopAllTracks() {
+    for (const p of app.players.values()) { try { p.audio.pause(); } catch (_) {} }
+    if (app.clock.source === 'internal') app.clock.pause();
   }
   $('exportPyBtn').addEventListener('click', () => {
     download(`${slug(app.show.name)}_cues.py`, exportPython(app.show), 'text/x-python');
@@ -913,6 +980,14 @@
   $('zoomFitBtn').addEventListener('click', () => timeline.fit());
   $('followChk').addEventListener('change', e => { app.settings.follow = e.target.checked; app.saveSettingsSoon(); });
 
+  let lastWall = '';
+  function renderWallClock() {
+    const el = $('wallClock');
+    if (!el) return;
+    const s = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (s !== lastWall) { el.textContent = s; lastWall = s; }
+  }
+
   function renderClockHeader(now, t) {
     const f = fps();
     $('tcDisplay').textContent = formatTC(t, f);
@@ -982,9 +1057,30 @@
       updateCountdowns(t);
       if (!$('showView').hidden) renderShowView(t);
       $('ltcMeter').style.width = Math.min(100, ltc.level * 100) + '%';
+      if (features.manual) features.renderStandby();
+      renderWallClock();
     }
     requestAnimationFrame(draw);
   }
+
+  // ---------- extra features (copy/paste, live op, exports, palette, themes) ----------
+  app.timeline = timeline;
+  app.fireCue = fireCue;
+  const features = new Features(app, {
+    toast,
+    fps,
+    download,
+    slug: () => slug(app.show.name),
+    fireCue,
+    titan,
+    timeline,
+    locate: app.locate,
+    catName: id => { const c = catById(id); return c ? c.name : 'Uncategorised'; },
+    stopAllTracks,
+    openPrintable,
+    restoreShow: show => { replaceShow(show); },
+  });
+  app.features = features;
 
   // ---------- start up ----------
   $('showName').value = app.show.name;

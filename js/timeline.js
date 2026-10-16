@@ -240,6 +240,27 @@ class Timeline {
       }
     });
 
+    // markers (section flags on the ruler, faint line down the lanes)
+    for (const m of (show.markers || [])) {
+      const mx = Math.round(this.x(m.time)) + 0.5;
+      if (mx < TL.LABEL_W || mx > W) continue;
+      ctx.fillStyle = m.color;
+      ctx.globalAlpha = 0.22;
+      ctx.fillRect(mx, TL.RULER_H, 1, H - TL.RULER_H);
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(mx, TL.RULER_H - 9); ctx.lineTo(mx + 9, TL.RULER_H - 9); ctx.lineTo(mx, TL.RULER_H - 1); ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath(); ctx.rect(mx, TL.RULER_H - 1, 160, 13); ctx.clip();
+      ctx.fillStyle = m.color;
+      ctx.font = '600 10px system-ui, -apple-system, sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText(m.name, mx + 4, TL.RULER_H + 1);
+      ctx.restore();
+      ctx.textBaseline = 'middle';
+    }
+
     // playhead
     const ph = app.clock.time(now);
     const px = Math.round(this.x(ph)) + 0.5;

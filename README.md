@@ -12,6 +12,10 @@ video, stage and anything else, and run it all from timecode: chase QLab, or be 
   timecode, and at that time the console jumps to that cue.
 - **Export** the cue list to a Python file (or CSV) with timecode, seconds and frame numbers.
 - **Network monitor**: see the sACN and Art-Net on your show network, the devices sending it, and a packet view.
+- **Copy / paste & groups**: multi-select cues, copy, duplicate, and paste a chorus's worth of cues onto every marker.
+- **Live operation**: manual GO / busk mode, blackout, PANIC (release the desk and stop tracks), and a fire log.
+- **Avolites export**: a timecode sheet per cue list, plus a "record times to Titan" workflow.
+- **Import & more**: CSV import, printable cue sheets, QLab CSV, command palette (⌘/Ctrl K), themes, and autosave snapshots.
 
 ## Running it
 
@@ -90,6 +94,35 @@ itself. It is **not** a general "capture every packet" sniffer — that needs li
 admin rights and isn't included. Only use it on a network you're responsible for, such as
 your own show network.
 
+## Working with cues faster
+
+- **Select several cues**: Shift-click or ⌘/Ctrl-click rows in the cue list.
+- **Copy / paste**: ⌘/Ctrl C, then ⌘/Ctrl V pastes at the playhead keeping the cues' spacing. ⌘/Ctrl D duplicates.
+- **Same look every chorus**: copy the cues for one chorus, add a **marker** (`M`) at each other chorus in the
+  **Tools** tab, then **Paste copied cues at all markers**. Pasted cues get fresh Titan cue numbers automatically.
+- **Shift a group**: nudge the whole selection earlier or later by a set number of seconds (Tools tab).
+- **Jump anywhere**: ⌘/Ctrl K opens a search to jump to any cue by name, timecode or category.
+- Press `?` for the full list of shortcuts.
+
+## Live operation (busking)
+
+Turn on **Manual GO / busk mode** in the Tools tab. A GO bar appears:
+
+- **GO** (or the `G` key) fires the next cue by hand, ignoring timecode. **Prev / Next** move the standby pointer.
+- **Blackout** blacks out the Avolites desk.
+- **PANIC** releases all console playbacks and stops every track at once.
+- Every fired cue is kept in the **fire log** (Tools tab), which exports to CSV.
+
+## Avolites: getting your times onto the desk
+
+The Titan WebAPI can't write cue timecodes directly, so there are two routes:
+
+1. **Timecode sheet** (Show tab → *Avolites CSV* / *Avolites sheet*): a list grouped by cue list — the cue numbers
+   and timecodes you type into Titan's **Edit Times**.
+2. **Record times to Titan** (the live way): on the desk, connect the cue list and press **Timecode → Record**.
+   In Cue Clock, set the clock to **Internal** and play from the start — it presses GO at each cue's time, so Titan
+   records those exact timecodes onto the cues. Stop recording on the desk when the show has played through.
+
 ## Python export
 
 **Show** tab → **Python (.py)**. The file contains `CUES`, `TRACKS` and `CATEGORIES` as plain Python
@@ -110,6 +143,11 @@ python3 my_show_cues.py --titan 192.168.1.50    # also fire the Titan cues
 | C | Add a cue at the playhead |
 | V | Countdown view |
 | N | Network monitor |
+| G | GO (manual mode) |
+| M | Add marker |
+| ⌘/Ctrl C / V / D | Copy / paste / duplicate cues |
+| ⌘/Ctrl K | Jump to a cue |
+| ? | Shortcuts help |
 | Delete | Remove the selected cue or track |
 | [ and ] | Nudge the selection one frame (Shift: one second) |
 | Home | Back to the start |
@@ -138,6 +176,7 @@ js/mtc.js           MTC message building and parsing
 js/io.js            clock, MIDI, LTC audio, bridge client
 js/timeline.js      timeline canvas
 js/network.js       network monitor view (sACN / Art-Net / devices / packets)
+js/features.js      copy/paste, markers, live op, palette, themes, autosave
 js/export.js        Python and CSV export
 js/show.js          show data, saving, undo
 js/app.js           the UI
@@ -145,4 +184,5 @@ bridge/server.js    serves the app and talks to the Titan WebAPI
 bridge/netscan.js   sACN / Art-Net / device discovery engine
 test/core.test.js   node test/core.test.js
 test/netscan.test.js  node test/netscan.test.js
+test/features.test.js node test/features.test.js
 ```

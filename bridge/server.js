@@ -236,6 +236,26 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, publicState());
   }
 
+  if (url.pathname === '/api/titan/blackout') {
+    const stateOn = body.on ? 1 : 0;
+    try {
+      await titanCommands([script('Masters/BlackOutDesk', { deskBlackOutState: stateOn })]);
+      titan.lastAction = { text: `Desk ${stateOn ? 'blackout on' : 'blackout off'}`, ok: true, at: Date.now() };
+      broadcast();
+      return sendJson(res, 200, { ok: true });
+    } catch (err) { return sendJson(res, 502, { error: err.message }); }
+  }
+
+  if (url.pathname === '/api/titan/release-all') {
+    try {
+      await titanCommands([script('Playbacks/ReleaseAllPlaybacks', { fadeTime: 0, useMasterReleaseTime: false })]);
+      titan.lastAction = { text: 'Released all playbacks', ok: true, at: Date.now() };
+      console.log(`${new Date().toLocaleTimeString()}  Released all playbacks${config.demo ? ' (demo)' : ''}`);
+      broadcast();
+      return sendJson(res, 200, { ok: true });
+    } catch (err) { return sendJson(res, 502, { error: err.message }); }
+  }
+
   if (url.pathname === '/api/titan/go' || url.pathname === '/api/titan/release') {
     const userNumber = positiveNumber(body.userNumber);
     if (!userNumber) return sendJson(res, 400, { error: 'A cue list user number is required' });

@@ -288,6 +288,8 @@ class TitanLink {
   }
 
   go(userNumber, cue) { return this.post('/api/titan/go', { userNumber, cue: cue || null }); }
+  blackout(on) { return this.post('/api/titan/blackout', { on: !!on }); }
+  releaseAll() { return this.post('/api/titan/release-all', {}); }
   configure(cfg) { return this.post('/api/titan/config', cfg); }
 
   cueLists() { return (this.state && this.state.cueLists) || []; }

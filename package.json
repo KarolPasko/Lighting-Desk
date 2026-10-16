@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node bridge/server.js",
     "demo": "node bridge/server.js --demo",
-    "test": "node test/core.test.js && node test/netscan.test.js"
+    "test": "node test/core.test.js && node test/netscan.test.js && node test/features.test.js"
   },
   "engines": { "node": ">=18" }
 }

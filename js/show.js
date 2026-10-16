@@ -24,6 +24,7 @@ function newShow() {
     categories: DEFAULT_CATEGORIES.map(c => ({ ...c })),
     tracks: [],
     cues: [],
+    markers: [],
   };
 }
 
@@ -59,9 +60,18 @@ function normalizeShow(raw) {
       name: String(c.name ?? '').slice(0, 200),
       category: typeof c.category === 'string' ? c.category : show.categories[0].id,
       notes: String(c.notes ?? '').slice(0, 2000),
+      fade: num(c.fade) > 0 ? num(c.fade) : undefined,
       titan: c.titan && num(c.titan.userNumber) > 0
         ? { userNumber: num(c.titan.userNumber), cue: num(c.titan.cue) > 0 ? num(c.titan.cue) : null, legend: String(c.titan.legend || '') }
         : null,
+    }));
+  }
+  if (Array.isArray(raw.markers)) {
+    show.markers = raw.markers.filter(m => m && typeof m.id === 'string').map((m, i) => ({
+      id: m.id,
+      time: Math.max(0, num(m.time)),
+      name: String(m.name || `Marker ${i + 1}`).slice(0, 40),
+      color: /^#[0-9a-f]{6}$/i.test(m.color) ? m.color : '#6fb6f2',
     }));
   }
   return show;
@@ -96,6 +106,8 @@ const DEFAULT_SETTINGS = {
   follow: true,
   newCueCategory: 'lighting',
   pps: 40,
+  accent: 'amber',           // amber | teal | blue | green | pink
+  manualGo: false,
 };
 
 function loadSettings() {
